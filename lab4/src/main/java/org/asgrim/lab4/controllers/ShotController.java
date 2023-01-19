@@ -31,9 +31,15 @@ public class ShotController {
 
     @PostMapping("/shot")
     ResponseEntity<?> shot(@Valid @RequestBody EntryDTO shot, Principal principal) {
+        long start = System.nanoTime();
         User user = userService.loadUserByUsername(principal.getName());
         ShotDTO shotDTO = shotService.checkShot(shot);
-        entryRepository.save(new Entry(shotDTO, user));
+        Entry entry = new Entry(shotDTO, user);
+        entry.setScriptTime((double) (System.nanoTime() - start) / 1000000);
+        shotDTO.setTime(entry.getTm());
+        shotDTO.setScriptTime(entry.getScriptTime());
+//        System.out.println(entry);
+        entryRepository.save(entry);
         return ResponseEntity.ok(shotDTO);
     }
 }

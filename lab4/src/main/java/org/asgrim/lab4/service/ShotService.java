@@ -5,6 +5,8 @@ import org.asgrim.lab4.data.EntryDTO;
 import org.asgrim.lab4.data.ShotDTO;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -13,7 +15,7 @@ public class ShotService {
 
     public ShotDTO checkShot(EntryDTO entry){
         ShotDTO ans = new ShotDTO(entry);
-        ans.setTime(LocalDateTime.now());
+        ans.setTime(Instant.now(Clock.systemUTC()));
         ans.setResult(entry.getR() != 0 && isHit(entry.getX(), entry.getY(), entry.getR()));
         return ans;
     }

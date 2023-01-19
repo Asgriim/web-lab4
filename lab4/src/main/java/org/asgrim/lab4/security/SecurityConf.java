@@ -43,7 +43,7 @@ public class SecurityConf {
                 .exceptionHandling().authenticationEntryPoint(entryPoint).and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and().addFilterBefore(filter(), UsernamePasswordAuthenticationFilter.class)
-                .authorizeRequests().antMatchers("/auth/**").permitAll().anyRequest().authenticated();
+                .authorizeRequests().antMatchers("/auth/**","/*","/*/*").permitAll().anyRequest().authenticated();
         return http.build();
     }
 

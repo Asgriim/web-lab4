@@ -7,6 +7,8 @@ import lombok.ToString;
 import org.asgrim.lab4.data.ShotDTO;
 
 import javax.persistence.*;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -21,7 +23,10 @@ public class Entry {
     private double y;
     private double r;
     private boolean result;
-    private LocalDateTime time;
+    // TODO: 14.01.2023 может всё сломать
+    private Instant tm;
+    private double scriptTime;
+//    private LocalDateTime time;
 
     @ManyToOne
     @JoinColumn(name = "userid")
@@ -34,7 +39,8 @@ public class Entry {
         this.y = shotDTO.getY();
         this.r = shotDTO.getR();
         this.result = shotDTO.isResult();
-        this.time = shotDTO.getTime();
+        this.tm = Instant.now(Clock.systemUTC());
+//        this.time = shotDTO.getTime();
         this.user = user;
     }
 }
