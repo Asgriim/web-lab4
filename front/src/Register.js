@@ -5,7 +5,7 @@ import auth from "./api/auth";
 import validation from "./util/validation";
 import authAPI from "./api/auth";
 import "./css/style.css"
-
+import $ from "jquery"
 class Register extends React.Component {
     constructor(props) {
         super(props);
@@ -57,22 +57,33 @@ class Register extends React.Component {
 
         console.log("login  " + login)
         console.log("passw  " + password)
-        console.log(this.state.valid)
+        const text = document.getElementById("outText")
+        // console.log(this.state.valid)
         console.log("do req")
         authAPI.register(login, password).then(response => {
             if (response.status === 200) {
-                alert("you are registered")
-                document.getElementById("hiddenInp").click()
+                $("#modalButton").click()
+                // alert("you are registered")
+                // document.getElementById("hiddenInp").click()
 
                 // useNavigate()
                 // this.navigate("/")
                 // useNavigate("/main")
             } else {
-                // todo сделать красивые алерты
-                alert("хз чо здесь писать")
+                text.innerText = "Internal server error. Try later"
+                // $("#outText").innerText = "Internal server error. Try later"
+                // alert("хз чо здесь писать")
             }
         }).catch(err => {
-            alert(err.response.data)
+            if (err.response.data != null){
+                text.innerText = err.response.data
+                return
+            }
+            text.innerText = "Internal server error. Try later"
+            // $("#outText").innerText = "Internal server error. Try later"
+            // text.innerText =  err
+            // $("#outText").innerText = err.response.data
+            // alert(err.response.data)
         })
 
     }
@@ -96,7 +107,8 @@ class Register extends React.Component {
                 </label>
                 <div>
                     <button className={"w-100 mt-3 btn btn-lg btn-primary"} onClick={this.handleClickButton}>Sign up</button>
-                    <Hello/>
+                    {/*<Hello/>*/}
+                    <button hidden data-toggle="modal" data-target="#exampleModalCenter" id={"modalButton"}></button>
                 </div>
                 <div>
                     <label>
@@ -106,17 +118,36 @@ class Register extends React.Component {
                 <div>
                     <Link to={'/'}>Back</Link>
                 </div>
+                <div className="modal fade" id="exampleModalCenter" tabIndex="-1" role="dialog"
+                     aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                    <div className="modal-dialog modal-dialog-centered" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title" id="exampleModalLongTitle">Register</h5>
+                            </div>
+                            <div id={"modalBodyText"} className="modal-body">
+                                You are registered
+                            </div>
+                            <div className="modal-footer">
+                                <Hello/>
+                                {/*<button type="button" className="btn btn-primary" >Ok</button>*/}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         )
     }
 
 }
-const Hello = () => {
+
+export const Hello = () => {
     const navigate = useNavigate();
     const handleClick = () => navigate('/');
 
     return (
-        <input id={"hiddenInp"} onClick={handleClick} type="hidden"/>
+        <button className={"w-100 mt-3 btn btn-lg btn-primary"} data-dismiss="modal" onClick={handleClick}>Ok</button>
+        // <input id={"hiddenInp"} onClick={handleClick} type="hidden"/>
     );
 };
 

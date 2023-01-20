@@ -5,8 +5,11 @@ const axiosInstance = axios.create({
 });
 
 const shotAPI = {
-    async getEntries(token) {
+    async getEntries(token, page) {
         return await axiosInstance.get('shots', {
+            params: {
+                page: page
+            },
             headers: {
                 Authorization: 'Bearer ' + token
             }
@@ -20,6 +23,14 @@ const shotAPI = {
             }
         });
     },
+
+    async getShotNum(token){
+        return axiosInstance.get("shotNum",{
+            headers: {
+                Authorization: 'Bearer ' + token
+            }
+        })
+    }
 }
 
 export default shotAPI;

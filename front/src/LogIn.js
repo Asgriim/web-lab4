@@ -31,6 +31,7 @@ function LogIn(){
         console.log("login  " + login)
         console.log("passw  " + password)
         console.log("do req")
+        const text = document.getElementById("outText")
         authAPI.login(login, password).then(response => {
             if (response.status === 200) {
                 localStorage.setItem("userLogin", response.data.username)
@@ -40,11 +41,12 @@ function LogIn(){
 
 
             } else {
-                // todo сделать красивые алерты
-                alert("хз чо здесь писать")
+                text.innerText = "server error. Try later"
+                // alert("хз чо здесь писать")
             }
         }).catch(err => {
-            alert(err.response.data)
+            text.innerText = err.response.data
+            // alert(err.response.data)
         })
 
     }
@@ -79,6 +81,7 @@ function LogIn(){
                         <Link to={'/register'}>Register</Link>
                     </div>
                 </div>
+
             </div>
         )
 
@@ -86,7 +89,7 @@ function LogIn(){
 }
 const Hello = () => {
     const navigate = useNavigate();
-    const handleClick = () => navigate('/Main');
+    const handleClick = () => navigate('/main');
 
     return (
         <input id={"hiddenInp"} onClick={handleClick} type="hidden"/>

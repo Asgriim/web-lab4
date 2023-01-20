@@ -1,10 +1,15 @@
-import React, {useState} from 'react';
+import React from 'react';
 import * as canvasUtil from "./util/canvas"
 import shotAPI from "./api/shot";
 import validation from "./util/validation";
 import ReactPaginate from "react-paginate";
 import {Navigate} from "react-router-dom";
+import {Hello} from "./Register";
+import $ from "jquery";
+
 let pageNum = 0
+const pageSize = 10
+
 class Main extends React.Component{
     constructor(props) {
         super(props);
@@ -30,7 +35,7 @@ class Main extends React.Component{
             // return <Navigate to={"/"} replace={true}/>
         }
         this.chosenR = 4
-        console.log(this.chosenR)
+        // console.log(this.chosenR)
         this.canvasWidth = document.getElementById("canvas").width;
         this.canvasHeight = document.getElementById("canvas").height
         this.offset =(this.canvasWidth - 20) / 10
@@ -43,28 +48,45 @@ class Main extends React.Component{
         // document.getElementById("canvas").addEventListener("click",this.canvasClickHandler)
         document.getElementById("canvas").onclick = ev => this.canvasClickHandler(ev)
         document.getElementById("rSelect").onchange = () => this.setChosenR()
-        document.getElementById("yField").onchange = () => this.yFieldChangeHandler()
+        document.getElementById("yField").oninput = () => this.yFieldChangeHandler()
         document.getElementById("shotButton").onclick = () => this.shotClickHandler()
-        this.reqAllPoints()
+        this.reqShotNum()
+        this.reqPointsPage(pageNum)
+        // this.reqAllPoints()
         // document.getElementById("mainTable").innerHTML = this.getReactPaginator()
-        console.log(this.points)
+        // console.log(this.points)
 
         // this.pages = Number.parseInt(this.points.length / 10) + 1
         // canvasUtil.redrawAll(this.canvasContext,this.canvasWidth,this.canvasHeight,this.offset,this.chosenR,this.points,this.pointColorPrev,this.pointColorHit,this.pointColorMiss)
     }
 
 
+    reqShotNum(){
+        shotAPI.getShotNum(localStorage.getItem("userToken")).then(response => {
+            console.log(response.data / pageSize + " pages")
+            this.setState({p:Math.ceil(response.data / pageSize)})
+        }).catch(err => {
+            this.setModalText("Session is expired. Try relogin")
+            localStorage.clear()
+            $("#modalButton").click()
+        })
+    }
+
     reqAllPoints(){
         shotAPI.getEntries(localStorage.getItem("userToken")).then(response => {
             // console.log(response.data.reverse())
             const arr = response.data
 
-            this.setState({p:Math.ceil(arr.length/10)})
+            // this.setState({p:Math.ceil(arr.length/10)})
             for(let i = 0; i < arr.length;i++){
                 this.savePointFromJson(arr[i])
             }
             this.redrawCanvas()
             this.drawTableFromSlice(this.points.slice(0,10))
+        }).catch(err => {
+            this.setModalText("Session is expired. Try relogin")
+            localStorage.clear()
+            $("#modalButton").click()
         })
     }
 
@@ -74,30 +96,46 @@ class Main extends React.Component{
             " <td>"+ point.y +"</td> " +
             "<td>"+ point.r +"</td>" +
             " <td>"+ point.hit +"</td>" +
-            " <td>"+ point.time.replace("T"," ") +"</td>" +
+            " <td>"+  new Date(point.time).toLocaleString("ru-RU", {
+            hour12: false})
+            +"</td>" +
+            " <td>"+ point.scriptTime.toFixed(3) +"</td>" +
             "</tr>"
     }
 
     drawTableFromSlice(slice){
         const tb = document.getElementById("table")
         tb.innerHTML = "";
-        console.log(slice)
         for (let i = 0;i<slice.length ;i++){
             tb.innerHTML += this.createRow(slice[i])
         }
     }
 
-    handlePagClick(event){
-        this.setState({ev:event.selected})
+    reqPointsPage(page){
+        this.points = []
+        shotAPI.getEntries(localStorage.getItem("userToken"),page).then(response => {
+            const arr = response.data
+            console.log(arr)
+            for(let i = 0; i < arr.length;i++){
+                this.savePointFromJson(arr[i])
+            }
+            this.redrawCanvas()
+            this.drawTableFromSlice(this.points)
+        }).catch(err => {
+                this.setModalText("Session is expired. Try relogin")
+                localStorage.clear()
+                $("#modalButton").click()
+            })
+    }
 
-        const selected = event.selected
-        console.log("sel "  + selected)
-        pageNum = selected
-        let slice = this.points.slice(selected * 10,selected * 10 + 10)
-        this.drawTableFromSlice(slice)
-        console.log("чекаем стейт")
-        console.error("selecterd " + this.state.ev)
-        this.redrawCanvas()
+    handlePagClick(event){
+        // this.setState({ev:event.selected})
+        pageNum = event.selected
+        console.log(this.state.p)
+        this.reqPointsPage(pageNum)
+        // let slice = this.points.slice(selected * pageSize,selected * pageSize + pageSize)
+        // this.drawTableFromSlice(slice)
+        // this.redrawCanvas()
 
     }
 
@@ -110,8 +148,13 @@ class Main extends React.Component{
         const y = document.getElementById("yField").value
         const res = validation.validateY(y)
         const btn = document.getElementById("shotButton")
+        if (y === ""){
+            btn.disabled = true
+            return
+        }
         if (res){
             btn.disabled = false
+            document.getElementById("errText").innerText = ""
         }
         else {
             btn.disabled = true
@@ -132,45 +175,56 @@ class Main extends React.Component{
     }
 
     sendShot(x,y,r){
-
+        if (x > 4 || x <-4 || y > 5 || y <-5){
+            return
+        }
         shotAPI.sendShot(x,y,r,localStorage.getItem("userToken")).then(response => {
             if (response.status === 200){
                 // console.log(response.data)
-                this.savePointFromJson(response.data)
-
-                this.drawTableFromSlice(this.points.slice(pageNum*10, 10+pageNum*10))
-                this.redrawCanvas()
+                this.reqPointsPage(pageNum)
+                this.reqShotNum()
+                // this.savePointFromJson(response.data)
+                // console.log(response.data)
+                // this.drawTableFromSlice(this.points.slice(pageNum*10, 10+pageNum*10))
+                // this.redrawCanvas()
             }
             else {
+                this.setModalText("Session is expired. Try relogin")
+                $("#modalButton").click()
                 console.log("ploho")
             }
+        }).catch(err => {
+            this.setModalText("Session is expired. Try relogin")
+            localStorage.clear()
+            $("#modalButton").click()
+            console.log(err.response.data)
         })
     }
 
     redrawCanvas(){
-        let start
-        let end
-
-        if (pageNum == 0){
-            start = 0
-            end = 10
-        }
-        else {
-            start = pageNum * 10
-            end = start + 10
-        }
-        console.log("start " + start)
-        console.log("end" + end)
-        console.log("slice fron redraw")
-        console.log(this.points.slice(start,end))
-        canvasUtil.redrawAll(this.canvasContext,this.canvasWidth,this.canvasHeight,this.offset,Number.parseInt(this.chosenR),this.points.slice(start,end),this.pointColorPrev,this.pointColorHit,this.pointColorMiss)
+        // let start
+        // let end
+        //
+        // if (pageNum == 0){
+        //     start = 0
+        //     end = 10
+        // }
+        // else {
+        //     start = pageNum * 10
+        //     end = start + 10
+        // }
+        // console.log("start " + start)
+        // console.log("end" + end)
+        // console.log("slice fron redraw")
+        // console.log(this.points.slice(start,end))
+        canvasUtil.redrawAll(this.canvasContext,this.canvasWidth,this.canvasHeight,this.offset,Number.parseInt(this.chosenR),this.points,this.pointColorPrev,this.pointColorHit,this.pointColorMiss)
     }
 
     savePointFromJson(JSON){
-        this.setState({p:Math.ceil(this.points.length / 10)})
-        let p = this.points.reverse()
-        p.push(new canvasUtil.Point(JSON.x, JSON.y,JSON.r,JSON.result,JSON.time))
-        this.points = p.reverse()
+        // this.setState({p:Math.ceil(this.points.length / 10)})
+        let p = this.points
+        p.push(new canvasUtil.Point(JSON.x, JSON.y,JSON.r,JSON.result,JSON.time,JSON.scriptTime))
+        // this.points = p.reverse()
 
     }
 
@@ -189,6 +243,9 @@ class Main extends React.Component{
         // console.log(document.getElementById("rSelect").value)
     }
 
+    setModalText(s){
+        document.getElementById("modalBodyText").innerText = s
+    }
 
     render() {
         let logeed = localStorage.getItem("signIn") === "true";
@@ -205,7 +262,7 @@ class Main extends React.Component{
                     <div className="row mx-5">
                         <div className="col">
                             <p>X</p>
-                            <select id={"xSelect"}  className={"form-select-md text-center"}>
+                            <select id={"xSelect"}  className={"form-select-sm text-center"}>
                                 <option value={-4}>-4</option>
                                 <option value={-3}>-3</option>
                                 <option value={-2}>-2</option>
@@ -219,7 +276,7 @@ class Main extends React.Component{
                         </div>
                         <div className="col">
                             <p>R</p>
-                            <select id={"rSelect"} className={"form-select-md text-center"}>
+                            <select id={"rSelect"} className={"form-select-sm text-center"}>
                                 <option value={1}>1</option>
                                 <option value={2}>2</option>
                                 <option value={3}>3</option>
@@ -233,11 +290,12 @@ class Main extends React.Component{
 
                 <div className={"text-center container  m-auto"}>
                     <div className={"row-sm3 m-auto"}>
-                        <input id={"yField"} className={"form-floating mt-5"} type={"text"} placeholder={"enter Y between -5 to 5"}/>
+                        <input id={"yField"} maxLength={5} className={"form-floating mt-5"} type={"text"} placeholder={"enter Y between -5 to 5"}/>
                         <p id={"errText"} className={"mt-3 err-label"}></p>
                     </div>
                     <div className={"row-sm4"}>
                         <button disabled={true} id={"shotButton"} className={"btn btn-primary "}>Shot</button>
+                        <button hidden data-toggle="modal" data-target="#exampleModalCenter" id={"modalButton"}></button>
                     </div>
 
                 </div>
@@ -251,6 +309,7 @@ class Main extends React.Component{
                                 <th scope="col">R</th>
                                 <th scope="col">HIT</th>
                                 <th scope="col">TIME</th>
+                                <th scope="col">SCRIPT TIME (ms)</th>
                             </tr>
                             </thead>
                             <tbody id={"table"}>
@@ -279,7 +338,23 @@ class Main extends React.Component{
                                        activeClassName="active"
                                        renderOnZeroPageCount={null}/></div>
                 </div>
+                <div className="modal fade" id="exampleModalCenter" tabIndex="-1" role="dialog"
+                     aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                    <div className="modal-dialog modal-dialog-centered" role="document">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title" id="exampleModalLongTitle">Error</h5>
+                            </div>
+                            <div id={"modalBodyText"} className="modal-body">
 
+                            </div>
+                            <div className="modal-footer">
+                                <Hello/>
+                                {/*<button type="button" className="btn btn-primary" >Ok</button>*/}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         )
     }

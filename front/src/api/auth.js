@@ -10,7 +10,6 @@ const authAPI = {
     },
 
     async register(username, password) {
-        console.log("тык на кнопку")
         return axiosInstance.post('register', { username, password });
     },
 }
